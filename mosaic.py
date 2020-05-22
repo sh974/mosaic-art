@@ -5,11 +5,19 @@ import argparse
 import cv2
 import skimage
 
-def average_color(data):
-    average_row_color = np.average(data, axis=0)
+def average_color(block):
+    average_row_color = np.average(block, axis=0)
     average_color = np.average(average_row_color, axis=0)
-
     return average_color
+
+def dominant_color(block):
+	pixels = np.float32(block.reshape(-1, 3))
+	n_colors = 5
+	criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
+	flags = cv2.KMEANS_RANDOM_CENTERS
+	_, labels, palette = cv2.kmeans(pixels, n_colors, None, criteria, 10, flags)
+	_, counts = np.unique(labels, return_counts=True)
+	return palette[np.argmax(counts)]
 
 def generate_mosaic(reshaped_img, block_size = 5):
 	output = np.zeros(reshaped_img.shape)
@@ -21,9 +29,8 @@ def generate_mosaic(reshaped_img, block_size = 5):
 		for c in range(cols): 
 			h_pos = (block_size * r)
 			w_pos = (block_size * c)
-			chunk = reshaped_img[h_pos:h_pos+block_size, w_pos:w_pos+block_size]
-			color = average_color(chunk)
-			#chunk = find_best_match(chunk, color, reshaped_img)
+			block = reshaped_img[h_pos:h_pos+block_size, w_pos:w_pos+block_size]
+			color = dominant_color(block)
 			output[h_pos:h_pos+block_size, w_pos:w_pos+block_size] = color
 			
 
